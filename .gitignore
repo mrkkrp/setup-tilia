@@ -1,0 +1,5 @@
+node_modules/
+lib/
+result
+dist-newstyle/
+.DS_Store

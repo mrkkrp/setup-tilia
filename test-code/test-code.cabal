@@ -1,0 +1,14 @@
+cabal-version: 2.4
+name: test-code
+version: 0.1.0.0
+synopsis: A module for the action's CI to format
+license: BSD-3-Clause
+author: Mark Karpov
+maintainer: markkarpov92@gmail.com
+build-type: Simple
+
+library
+  exposed-modules: Kiln.Schedule
+  hs-source-dirs: src
+  default-language: GHC2021
+  build-depends: base >=4.14 && <5

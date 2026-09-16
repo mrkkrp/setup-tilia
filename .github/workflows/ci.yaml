@@ -1,0 +1,64 @@
+name: CI
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    types:
+      - opened
+      - synchronize
+jobs:
+  action:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-15
+          - macos-15-intel
+          - windows-2022
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: haskell-actions/setup@v2
+        with:
+          ghc-version: '9.10.3'
+          cabal-version: '3.18.1.0'
+      - uses: ./.
+        id: tilia
+      - name: It is on PATH and is the version that was asked for
+        shell: bash
+        run: |
+          set -euo pipefail
+          tilia --version
+          test -x "${{ steps.tilia.outputs.tilia-path }}"
+          test "${{ steps.tilia.outputs.version }}" = "0.0.1.0"
+      - name: It formats the project in test-code
+        shell: bash
+        working-directory: test-code
+        run: |
+          set -uo pipefail
+          cabal update
+          tilia check 2>&1 | tee said.txt
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            echo "::error::tilia check exited $status" >&2
+            exit 1
+          fi
+          if grep -qE 'Declined|Failed' said.txt; then
+            echo "::error::it would not format the test project" >&2
+            exit 1
+          fi
+  dist:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: cachix/install-nix-action@v31
+      - name: Build dist/ with Nix
+        run: nix build
+      - name: Check that committed dist/ is up to date
+        run: |
+          if ! diff -r dist result/dist; then
+            echo "::error::dist/ is out of date. Run 'nix build' and commit the result."
+            exit 1
+          fi

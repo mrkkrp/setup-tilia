@@ -1,0 +1,38 @@
+{
+  "name": "setup-tilia",
+  "version": "1.0.0",
+  "description": "Install Tilia, put it on PATH, and cache what it reads.",
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "tsc",
+    "package": "ncc build lib/index.js -o dist --source-map --license licenses.txt",
+    "prepare": "npm run build && npm run package",
+    "all": "npm run prepare"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mrkkrp/setup-tilia.git"
+  },
+  "keywords": [
+    "formatter",
+    "haskell"
+  ],
+  "author": "Mark Karpov",
+  "license": "BSD 3 clause",
+  "dependencies": {
+    "@actions/cache": "^4.0.3",
+    "@actions/core": "^1.11.1",
+    "@actions/exec": "^1.1.1",
+    "@actions/glob": "^0.5.0",
+    "@actions/tool-cache": "^2.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@vercel/ncc": "^0.38.3",
+    "typescript": "^5.9.0"
+  },
+  "bugs": {
+    "url": "https://github.com/mrkkrp/setup-tilia/issues"
+  },
+  "homepage": "https://github.com/mrkkrp/setup-tilia#readme"
+}
