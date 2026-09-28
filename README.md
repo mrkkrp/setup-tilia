@@ -24,7 +24,9 @@ Two directories, restored before the job and saved after it:
 - **Cabal's package cache**, holding the source tarballs Tilia reads those
   operators out of. Its location differs by platform and has moved once on
   Unix, so this action asks `cabal path --remote-repo-cache` rather than
-  guessing. Skipped when there is no `cabal` to ask.
+  guessing. Skipped when there is no `cabal` to ask. Hackage's index,
+  `01-index.*`, is left out: it is most of the directory, Tilia does not
+  read it, and `cabal update` fetches it anyway.
 
 Both are keyed on the version of Tilia, the runner, the project's compiler
 as `cabal path --compiler-info` reports it, and a hash of `cabal.project`,

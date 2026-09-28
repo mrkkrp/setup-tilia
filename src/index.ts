@@ -182,8 +182,8 @@ async function cabalPath(
 }
 
 /**
- * Everything worth carrying from one run to the next, and the compiler it
- * was worked out for.
+ * Everything worth carrying from one run to the next, as the paths and
+ * patterns `@actions/cache` takes, and the compiler it was worked out for.
  */
 async function cacheable(): Promise<{
   paths: string[];
@@ -198,7 +198,13 @@ async function cacheable(): Promise<{
   }
   const { packages, compiler } = await askCabal();
   if (packages) {
-    found.push(packages);
+    // What each repository holds rather than the directory itself, since a
+    // directory is archived whole and no `!` pattern takes anything out of
+    // it. Hackage's index is then left out: it is most of the package cache
+    // and is no use to Tilia, and restored after `cabal update` an old one
+    // would replace the fresh one.
+    found.push(path.join(packages, '*', '*'));
+    found.push(`!${path.join(packages, '*', '01-index.*')}`);
   } else {
     core.info(
       'No cabal on PATH, so the package cache is not being cached. Run ' +
@@ -293,10 +299,11 @@ async function setUp(): Promise<void> {
     return;
   }
   const exact = matched === key;
+  const directories = paths.filter((p) => !p.startsWith('!')).length;
 
   core.info(
     matched
-      ? `Restored ${paths.length} director${paths.length === 1 ? 'y' : 'ies'} from ${matched}`
+      ? `Restored ${directories} director${directories === 1 ? 'y' : 'ies'} from ${matched}`
       : 'Nothing cached yet for this project'
   );
 
