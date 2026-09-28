@@ -203,11 +203,13 @@ async function cacheable() {
     if (packages) {
         // What each repository holds rather than the directory itself, since a
         // directory is archived whole and no `!` pattern takes anything out of
-        // it. Hackage's index is then left out: it is most of the package cache
-        // and is no use to Tilia, and restored after `cabal update` an old one
-        // would replace the fresh one.
+        // it. Hackage's index is then left out, and with it the security
+        // metadata that vouches for it: the index is most of the package cache
+        // and is no use to Tilia, and the metadata without it would convince
+        // `cabal update` that there is nothing to fetch.
         found.push(path.join(packages, '*', '*'));
         found.push(`!${path.join(packages, '*', '01-index.*')}`);
+        found.push(`!${path.join(packages, '*', '*.json')}`);
     }
     else {
         core.info('No cabal on PATH, so the package cache is not being cached. Run ' +
