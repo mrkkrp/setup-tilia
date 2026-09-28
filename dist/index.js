@@ -126,21 +126,32 @@ function ownCacheDirectory() {
     return path.join(root, TOOL);
 }
 /**
- * Where cabal keeps the source tarballs of everything it has downloaded.
+ * Ask cabal for its package cache and for the project's compiler.
  *
- * Asked of cabal rather than worked out, because the answer differs by
- * platform and has moved once on Unix: it is `C:\cabal\packages` on a
- * GitHub Windows runner, under the XDG cache directory on a current Unix
- * cabal, and in `~/.cabal` on an older one.
- *
- * Undefined where there is no cabal to ask, which is a perfectly ordinary
- * state for a job that has not set up a Haskell toolchain yet. Tilia reads
- * this directory to learn the fixities of operators belonging to packages
- * that were planned but never installed.
+ * Both are undefined where there is no cabal to ask, which is a perfectly
+ * ordinary state for a job that has not set up a Haskell toolchain yet.
+ * Where cabal cannot find a compiler it will not answer about one at all,
+ * so the package cache is then asked for on its own.
  */
-async function packageCacheDirectory() {
+async function askCabal() {
+    const both = await cabalPath(['--remote-repo-cache', '--compiler-info']);
+    if (both) {
+        return {
+            packages: both.get('remote-repo-cache'),
+            compiler: both.get('compiler-id'),
+        };
+    }
+    const alone = await cabalPath(['--remote-repo-cache']);
+    return { packages: alone?.get('remote-repo-cache') };
+}
+/**
+ * Run `cabal path` with the given flags and read its answers by key.
+ *
+ * Undefined if cabal could not be run or refused.
+ */
+async function cabalPath(flags) {
     let spoken = '';
-    const code = await exec.exec('cabal', ['path', '--remote-repo-cache'], {
+    const code = await exec.exec('cabal', ['path', ...flags], {
         ignoreReturnCode: true,
         silent: true,
         listeners: {
@@ -152,16 +163,33 @@ async function packageCacheDirectory() {
     if (code !== 0) {
         return undefined;
     }
-    // The last line, and not the whole of it: a cabal that finds no
-    // configuration file writes one and says so first, on the same stream it
-    // answers on.
+    // A cabal that finds no configuration file writes one and says so first,
+    // on the same stream it answers on. Asked one thing, it answers with the
+    // bare value on the last line; asked several, with a `key: value` line
+    // for each.
     const lines = spoken
         .split(/\r?\n/)
         .map((line) => line.trim())
         .filter((line) => line !== '');
-    return lines.length > 0 ? lines[lines.length - 1] : undefined;
+    const answers = new Map();
+    if (flags.length === 1) {
+        if (lines.length > 0) {
+            answers.set(flags[0].replace(/^--/, ''), lines[lines.length - 1]);
+        }
+        return answers;
+    }
+    for (const line of lines) {
+        const answer = /^([a-z-]+): (.*)$/.exec(line);
+        if (answer) {
+            answers.set(answer[1], answer[2]);
+        }
+    }
+    return answers;
 }
-/** Everything worth carrying from one run to the next. */
+/**
+ * Everything worth carrying from one run to the next, and the compiler it
+ * was worked out for.
+ */
 async function cacheable() {
     const found = [];
     const own = ownCacheDirectory();
@@ -171,7 +199,7 @@ async function cacheable() {
     else {
         core.warning('Could not work out where Tilia keeps its own cache');
     }
-    const packages = await packageCacheDirectory();
+    const { packages, compiler } = await askCabal();
     if (packages) {
         found.push(packages);
     }
@@ -180,12 +208,25 @@ async function cacheable() {
             'haskell-actions/setup before this action to have it, and to let ' +
             'Tilia resolve fixities from dependency sources at all.');
     }
-    return found;
+    return { paths: found, compiler };
 }
-/** What to file the caches under. */
-async function cacheKeys(prefix, version) {
+/**
+ * What to file the caches under.
+ *
+ * The compiler is part of it because both directories fill up with what
+ * that compiler's build plan needs, so jobs of a matrix over compilers
+ * would otherwise share one key: the first of them to finish would save
+ * the cache and the rest would restore it and never get to save their own.
+ */
+async function cacheKeys(prefix, version, compiler) {
     const fingerprint = await glob.hashFiles(FINGERPRINTED.join('\n'));
-    const forThisRunner = `${prefix}-${version}-${process.platform}-${process.arch}`;
+    const forThisRunner = [
+        prefix,
+        version,
+        process.platform,
+        process.arch,
+        ...(compiler ? [compiler] : []),
+    ].join('-');
     return {
         // A fingerprint of nothing means the project names no packages, which
         // is unusual but not an error; the key stays well-formed either way.
@@ -222,12 +263,12 @@ async function setUp() {
         core.setOutput('cache-hit', 'false');
         return;
     }
-    const paths = await cacheable();
+    const { paths, compiler } = await cacheable();
     if (paths.length === 0) {
         core.setOutput('cache-hit', 'false');
         return;
     }
-    const { key, restoreKeys } = await cacheKeys(prefix, version);
+    const { key, restoreKeys } = await cacheKeys(prefix, version, compiler);
     let matched;
     try {
         matched = await cache.restoreCache(paths.slice(), key, restoreKeys);

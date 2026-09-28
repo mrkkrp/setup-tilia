@@ -26,8 +26,10 @@ Two directories, restored before the job and saved after it:
   Unix, so this action asks `cabal path --remote-repo-cache` rather than
   guessing. Skipped when there is no `cabal` to ask.
 
-Both are keyed on the version of Tilia, the runner, and a hash of
-`cabal.project`, `cabal.project.freeze` and every `*.cabal` file.
+Both are keyed on the version of Tilia, the runner, the project's compiler
+as `cabal path --compiler-info` reports it, and a hash of `cabal.project`,
+`cabal.project.freeze` and every `*.cabal` file. The compiler is left out
+when cabal cannot find one.
 
 ## Inputs
 
