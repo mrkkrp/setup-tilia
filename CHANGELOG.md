@@ -1,4 +1,4 @@
-## Unreleased
+## setup-tilia v2
 
 * Install Tilia 0.0.2.0 by default.
 * Key the caches on the project's compiler too, so that jobs of a matrix
@@ -8,6 +8,6 @@
   cache. The index was most of the cache's size, and restoring it after
   `cabal update` could replace the fresh index with an old one.
 
-## setup-tilia 1.0.0
+## setup-tilia v1
 
 * Initial release.

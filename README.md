@@ -10,7 +10,7 @@ the two directories it reads.
   with:
     ghc-version: '9.10.3'
 - uses: actions/checkout@v7
-- uses: mrkkrp/setup-tilia@v1
+- uses: mrkkrp/setup-tilia@v2
 - run: tilia check
 ```
 
