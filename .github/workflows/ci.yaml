@@ -39,14 +39,10 @@ jobs:
         run: |
           set -uo pipefail
           cabal update
-          tilia check 2>&1 | tee said.txt
-          status=${PIPESTATUS[0]}
+          tilia check --must-not-decline
+          status=$?
           if [ "$status" -ne 0 ]; then
             echo "::error::tilia check exited $status" >&2
-            exit 1
-          fi
-          if grep -qE 'Declined|Failed' said.txt; then
-            echo "::error::it would not format the test project" >&2
             exit 1
           fi
   dist:
