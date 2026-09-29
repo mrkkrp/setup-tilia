@@ -1,5 +1,6 @@
 ## Unreleased
 
+* Install Tilia 0.0.2.0 by default.
 * Key the caches on the project's compiler too, so that jobs of a matrix
   over compilers each keep their own cache instead of all but one of them
   restoring a cache they can never save to.

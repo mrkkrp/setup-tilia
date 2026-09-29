@@ -10,7 +10,7 @@ import * as tool_cache from '@actions/tool-cache';
 // The newest release this action knows about. 'latest' resolves to this
 // rather than to whatever GitHub calls latest today, so that a workflow
 // that pins nothing still formats the same way tomorrow as it did today.
-const DEFAULT_TILIA_VERSION = '0.0.1.0';
+const DEFAULT_TILIA_VERSION = '0.0.2.0';
 
 const TOOL = 'tilia';
 const REPOSITORY = 'mrkkrp/tilia';
